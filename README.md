@@ -16,7 +16,7 @@ and follow the [examples](https://github.com/UpsettingBoy/gpgpu-rs/tree/dev/exam
 Small program that multiplies 2 vectors A and B; and stores the
 result in another vector C.
 ## Rust program
-```
+```rust
 use gpgpu::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
