@@ -4,6 +4,7 @@ use crate::{entry_type::EntryType, primitives::PixelInfo, GpuBufferUsage};
 pub struct SetLayout {
     pub(crate) layout_entry: Vec<wgpu::BindGroupLayoutEntry>,
     pub(crate) entry_type: Vec<EntryType>,
+    bind_id: u32,
 }
 
 /// Creates a new [SetLayout]
@@ -26,23 +27,23 @@ pub struct SetLayout {
 /// ```
 #[macro_export]
 macro_rules! new_set_layout {
-    (@add_entry $usage:expr, $layout:expr, $id:literal, Buffer) => {
-        $layout.add_buffer($id, $usage);
+    (@add_entry $usage:expr, $layout:expr, Buffer) => {
+        $layout.add_buffer($usage);
     };
-    (@add_entry $layout:expr, $id:literal, UniformBuffer) => {
-        $layout.add_uniform_buffer($id);
+    (@add_entry $layout:expr, UniformBuffer) => {
+        $layout.add_uniform_buffer();
     };
-    (@add_entry $p:ty, $layout:expr, $id:literal, Image) => {
-        $layout.add_image::<$p>($id);
+    (@add_entry $p:ty, $layout:expr, Image) => {
+        $layout.add_image::<$p>();
     };
-    (@add_entry $p:ty, $layout:expr, $id:literal, ConstImage) => {
-        $layout.add_const_image::<$p>($id);
+    (@add_entry $p:ty, $layout:expr, ConstImage) => {
+        $layout.add_const_image::<$p>();
     };
-    ($($id:literal: $ty:tt$(<$p:ty>)?$(($usage:expr))?),+) => {{
+    ($($ty:tt$(<$p:ty>)?$(($usage:expr))?),+) => {{
         let mut layout = $crate::layout::SetLayout::default();
 
         $(
-            $crate::new_set_layout!(@add_entry $($p, )? $($usage, )? layout, $id, $ty);
+            $crate::new_set_layout!(@add_entry $($p, )? $($usage, )? layout, $ty);
         )+
 
         layout
@@ -50,9 +51,9 @@ macro_rules! new_set_layout {
 }
 
 impl SetLayout {
-    pub fn add_buffer(&mut self, bind_id: u32, usage: GpuBufferUsage) {
+    pub fn add_buffer(&mut self, usage: GpuBufferUsage) {
         let entry = wgpu::BindGroupLayoutEntry {
-            binding: bind_id,
+            binding: self.bind_id,
             visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::Buffer {
                 has_dynamic_offset: false,
@@ -65,12 +66,13 @@ impl SetLayout {
         };
 
         self.layout_entry.push(entry);
-        self.entry_type.push(EntryType::Buffer)
+        self.entry_type.push(EntryType::Buffer);
+        self.bind_id += 1;
     }
 
-    pub fn add_uniform_buffer(&mut self, bind_id: u32) {
+    pub fn add_uniform_buffer(&mut self) {
         let entry = wgpu::BindGroupLayoutEntry {
-            binding: bind_id,
+            binding: self.bind_id,
             visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::Buffer {
                 has_dynamic_offset: false,
@@ -81,12 +83,13 @@ impl SetLayout {
         };
 
         self.layout_entry.push(entry);
-        self.entry_type.push(EntryType::Uniform)
+        self.entry_type.push(EntryType::Uniform);
+        self.bind_id += 1;
     }
 
-    pub fn add_image<P: PixelInfo>(&mut self, bind_id: u32) {
+    pub fn add_image<P: PixelInfo>(&mut self) {
         let entry = wgpu::BindGroupLayoutEntry {
-            binding: bind_id,
+            binding: self.bind_id,
             visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::StorageTexture {
                 access: wgpu::StorageTextureAccess::WriteOnly,
@@ -97,12 +100,13 @@ impl SetLayout {
         };
 
         self.layout_entry.push(entry);
-        self.entry_type.push(EntryType::Image)
+        self.entry_type.push(EntryType::Image);
+        self.bind_id += 1;
     }
 
-    pub fn add_const_image<P: PixelInfo>(&mut self, bind_id: u32) {
+    pub fn add_const_image<P: PixelInfo>(&mut self) {
         let entry = wgpu::BindGroupLayoutEntry {
-            binding: bind_id,
+            binding: self.bind_id,
             visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::Texture {
                 sample_type: P::wgpu_texture_sample(),
@@ -113,6 +117,7 @@ impl SetLayout {
         };
 
         self.layout_entry.push(entry);
-        self.entry_type.push(EntryType::ConstImage)
+        self.entry_type.push(EntryType::ConstImage);
+        self.bind_id += 1;
     }
 }

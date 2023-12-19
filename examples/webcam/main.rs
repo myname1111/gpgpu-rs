@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use gpgpu::{
-    new_set_layout, primitives::pixels::Rgba8UintNorm, BufOps, DescriptorSet, Framework,
-    GpuConstImage, GpuImage, GpuUniformBuffer, ImgOps,
+    new_set_layout, primitives::pixels::Rgba8UintNorm, BufOps, Framework, GpuConstImage, GpuImage,
+    GpuUniformBuffer, ImgOps,
 };
 
 use minifb::{Key, Window, WindowOptions};
@@ -19,11 +19,11 @@ fn main() {
         &fw,
         &shader,
         "main",
-        vec![new_set_layout! {
-            0: ConstImage<Rgba8UintNorm>,
-            1: Image<Rgba8UintNorm>,
-            2: UniformBuffer,
-        }],
+        new_set_layout![
+            ConstImage<Rgba8UintNorm>,
+            Image<Rgba8UintNorm>,
+            UniformBuffer
+        ],
     );
 
     // Camera initilization. Config may not work if not same cam as the Thinkpad T480 one.
@@ -61,9 +61,9 @@ fn main() {
     let gpu_output = GpuImage::<Rgba8UintNorm>::new(&fw, WIDTH as u32, HEIGHT as u32); // Shader output
 
     let binds = gpgpu::SetBindings::default()
-        .add_const(0, &gpu_input)
-        .add_image(1, &gpu_output)
-        .add_uniform_buffer(2, &buf_time);
+        .add_const_image(&gpu_input)
+        .add_image(&gpu_output)
+        .add_uniform_buffer(&buf_time);
 
     let time = std::time::Instant::now();
 
@@ -82,7 +82,7 @@ fn main() {
         gpu_input.write_image_buffer(&cam_buf).unwrap(); // Upload cam frame into the cam frame texture
         buf_time.write(&[time.elapsed().as_secs_f32()]).unwrap(); // Upload elapsed time into elapsed time buffer
 
-        kernel.run(&fw, binds, WIDTH as u32 / 32, HEIGHT as u32 / 31, 1);
+        kernel.run(&fw, binds.clone(), WIDTH as u32 / 32, HEIGHT as u32 / 31, 1);
 
         gpu_output
             .read_blocking(bytemuck::cast_slice_mut(&mut frame_buffer))

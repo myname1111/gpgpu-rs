@@ -5,8 +5,8 @@ use crate::{bindings::SetBindings, entry_type::EntryType, *};
 /// Equivalent to OpenCL's Kernel.
 pub struct Kernel<'a> {
     pipeline: wgpu::ComputePipeline,
-    entry_types: Vec<Vec<EntryType>>,
-    layouts: Vec<wgpu::BindGroupLayout>,
+    entry_types: Vec<EntryType>,
+    layout: wgpu::BindGroupLayout,
     function_name: &'a str,
 }
 
@@ -16,36 +16,23 @@ impl<'a> Kernel<'a> {
         fw: &'fw Framework,
         shader: &'sha Shader,
         function_name: &'a str,
-        layouts: Vec<SetLayout>,
+        layout: SetLayout,
     ) -> Self {
-        let entry_types = layouts
-            .iter()
-            .map(|layout| layout.entry_type.clone())
-            .collect();
+        let entry_types = layout.entry_type.clone();
 
         // Compute pipeline bindings
-        let layouts = layouts
-            .iter()
-            .map(|layout| {
-                fw.device
-                    .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                        label: None,
-                        entries: &layout.layout_entry,
-                    })
-            })
-            .collect::<Vec<_>>();
-
-        let mut group_layouts = vec![];
-
-        for layout in layouts.iter() {
-            group_layouts.push(layout)
-        }
+        let layout = fw
+            .device
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &layout.layout_entry,
+            });
 
         let pipeline_layout = fw
             .device
             .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: None,
-                bind_group_layouts: &group_layouts,
+                bind_group_layouts: &[&layout],
                 push_constant_ranges: &[],
             });
 
@@ -61,7 +48,7 @@ impl<'a> Kernel<'a> {
         Self {
             pipeline,
             entry_types,
-            layouts,
+            layout,
             function_name,
         }
     }
@@ -69,23 +56,14 @@ impl<'a> Kernel<'a> {
     /// executes this [`Kernel`] with the give bindings.
     ///
     /// [`Kernel`] will dispatch `x`, `y` and `z` workgroups per dimension.
-    pub fn run(&self, fw: &Framework, bindings: Vec<SetBindings>, x: u32, y: u32, z: u32) {
+    pub fn run(&self, fw: &Framework, binding: SetBindings, x: u32, y: u32, z: u32) {
         let mut encoder = fw
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Kernel::enqueue"),
             });
 
-        if bindings.len() != self.layouts.len() {
-            panic!("The amount of layouts must match the amount of the binding groups")
-        }
-
-        let bind_groups = bindings
-            .iter()
-            .zip(self.layouts.iter())
-            .zip(self.entry_types.iter())
-            .map(|((binding, layout), entry_type)| binding.to_bind_group(fw, layout, entry_type))
-            .collect::<Vec<_>>();
+        let bind_group = binding.to_bind_group(fw, &self.layout, &self.entry_types);
 
         {
             let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -95,11 +73,7 @@ impl<'a> Kernel<'a> {
             });
 
             cpass.set_pipeline(&self.pipeline);
-
-            for (bind_id, binds) in bind_groups.iter().enumerate() {
-                cpass.set_bind_group(bind_id as u32, binds, &[])
-            }
-
+            cpass.set_bind_group(0, &bind_group, &[]);
             cpass.insert_debug_marker(self.function_name);
             cpass.dispatch_workgroups(x, y, z);
         }

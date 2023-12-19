@@ -10,10 +10,7 @@ fn main() {
         &fw,
         &shader,
         "main",
-        vec![gpgpu::new_set_layout!(
-            0: ConstImage<Rgba8Uint>,
-            1: Image<Rgba8Uint>
-        )],
+        gpgpu::new_set_layout![ConstImage<Rgba8Uint>, Image<Rgba8Uint>],
     );
 
     let dynamic_img = image::open("examples/image-compatibility/monke.jpg").unwrap(); // RGB8 image ...
@@ -26,10 +23,10 @@ fn main() {
     let output_img = gpgpu::GpuImage::<Rgba8Uint>::new(&fw, width, height); // Output
 
     let binds = gpgpu::SetBindings::default()
-        .add_const_image(0, &input_img)
-        .add_image(1, &output_img);
+        .add_const_image(&input_img)
+        .add_image(&output_img);
 
-    kernel.run(&fw, vec![binds], width / 32, height / 32, 1); // Since the kernel workgroup size is (32,32,1) dims are divided
+    kernel.run(&fw, binds, width / 32, height / 32, 1); // Since the kernel workgroup size is (32,32,1) dims are divided
 
     let output = output_img.read_to_image_buffer_blocking().unwrap();
     output

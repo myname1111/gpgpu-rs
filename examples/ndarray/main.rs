@@ -9,14 +9,12 @@ fn main() {
         &fw,
         &shader,
         "main_fn_2",
-        vec![
-            gpgpu::new_set_layout!(0: UniformBuffer),
-            gpgpu::new_set_layout!(
-                0: Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-                1: Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-                2: Buffer(gpgpu::GpuBufferUsage::ReadWrite)
-            ),
-        ],
+        gpgpu::new_set_layout!(
+            UniformBuffer,
+            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
+            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
+            Buffer(gpgpu::GpuBufferUsage::ReadWrite)
+        ),
     );
 
     let dims = (3200, 3200); // X and Y dimensions. Must be multiple of the enqueuing dimensions
@@ -30,12 +28,11 @@ fn main() {
     let gpu_array_b = gpgpu::GpuArray::from_array(&fw, src_view).unwrap(); // Array B
     let gpu_array_c = gpgpu::GpuArray::from_array(&fw, ndarray::Array::zeros(dims).view()).unwrap(); // Array C: result storage
 
-    let binds_0 = gpgpu::SetBindings::default().add_uniform_buffer(0, &gpu_arrays_len); // Bindings of arrays dimensions.
-
-    let binds_1 = gpgpu::SetBindings::default()
-        .add_array(0, &gpu_array_a)
-        .add_array(1, &gpu_array_b)
-        .add_array(2, &gpu_array_c);
+    let binds = gpgpu::SetBindings::default()
+        .add_uniform_buffer(&gpu_arrays_len) // Bindings of arrays dimensions
+        .add_array(&gpu_array_a)
+        .add_array(&gpu_array_b)
+        .add_array(&gpu_array_c);
 
     kernel
         // .enqueue((dims.0 * dims.1) as u32, 1, 1); // Kernel main_fn 1. Enqueuing in a single dimension

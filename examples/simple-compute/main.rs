@@ -13,11 +13,11 @@ fn main() {
         "main", // The kernel needs the name function to be executed
         // We have to tell the GPU how the layout of the data with SetLayout
         // We create SetLayout using the new_set_layout macro
-        vec![gpgpu::new_set_layout!(
-            0: Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-            1: Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-            2: Buffer(gpgpu::GpuBufferUsage::ReadWrite)
-        )],
+        gpgpu::new_set_layout![
+            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
+            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
+            Buffer(gpgpu::GpuBufferUsage::ReadWrite)
+        ],
     );
 
     let size = 10000; // Size of the vectors
@@ -31,13 +31,13 @@ fn main() {
     let gpu_vec_c = gpgpu::GpuBuffer::with_capacity(&fw, size as u64); // Output vector C. Empty.
 
     let bindings = gpgpu::SetBindings::default()
-        .add_buffer(0, &gpu_vec_a)
-        .add_buffer(1, &gpu_vec_b)
-        .add_buffer(2, &gpu_vec_c);
+        .add_buffer(&gpu_vec_a)
+        .add_buffer(&gpu_vec_b)
+        .add_buffer(&gpu_vec_c);
 
     // Execution of the kernel. It needs 3 dimmensions, x y and z.
     // Since we are using single-dim vectors, only x is required.
-    kernel.run(&fw, vec![bindings], size as u32, 1, 1);
+    kernel.run(&fw, bindings, size as u32, 1, 1);
 
     // After the kernel execution, we can read the results from the GPU.
     let gpu_result = gpu_vec_c.read_vec_blocking().unwrap();

@@ -17,11 +17,11 @@ fn main() {
         &FW,
         &shader,
         "main",
-        vec![gpgpu::new_set_layout!(
-            0: Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-            1: Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-            2: Buffer(gpgpu::GpuBufferUsage::ReadWrite)
-        )],
+        gpgpu::new_set_layout![
+            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
+            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
+            Buffer(gpgpu::GpuBufferUsage::ReadWrite)
+        ],
     ));
 
     let threading = 4; // Threading level
@@ -43,11 +43,11 @@ fn main() {
             let local_output_buffer = gpgpu::GpuBuffer::<u32>::with_capacity(&FW, size as u64);
 
             let binds = gpgpu::SetBindings::default()
-                .add_buffer(0, &local_shader_input_buffer)
-                .add_buffer(1, &local_input_buffer)
-                .add_buffer(2, &local_output_buffer);
+                .add_buffer(&local_shader_input_buffer)
+                .add_buffer(&local_input_buffer)
+                .add_buffer(&local_output_buffer);
 
-            kernel.run(&FW, vec![binds], size / 32, 1, 1);
+            kernel.run(&FW, binds, size / 32, 1, 1);
 
             local_output_buffer.read_vec_blocking().unwrap()
         });

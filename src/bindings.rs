@@ -25,6 +25,7 @@ use crate::{entry_type::EntryType, primitives::*, *};
 pub struct SetBindings<'res> {
     pub(crate) bindings: Vec<wgpu::BindGroupEntry<'res>>,
     pub(crate) entry_type: Vec<EntryType>,
+    bind_id: u32,
 }
 
 impl<'res> SetBindings<'res> {
@@ -37,17 +38,18 @@ impl<'res> SetBindings<'res> {
     ///
     /// SetBindings::default().add_buffer(0, &buffer);
     /// ```
-    pub fn add_buffer<T>(mut self, bind_id: u32, buffer: &'res GpuBuffer<T>) -> Self
+    pub fn add_buffer<T>(mut self, buffer: &'res GpuBuffer<T>) -> Self
     where
         T: bytemuck::Pod,
     {
         let bind = wgpu::BindGroupEntry {
-            binding: bind_id,
+            binding: self.bind_id,
             resource: buffer.as_binding_resource(),
         };
 
         self.bindings.push(bind);
         self.entry_type.push(EntryType::Buffer);
+        self.bind_id += 1;
 
         self
     }
@@ -61,17 +63,18 @@ impl<'res> SetBindings<'res> {
     ///
     /// SetBindings::default().add_uniform_buffer(0, &uniform);
     /// ```
-    pub fn add_uniform_buffer<T>(mut self, bind_id: u32, buffer: &'res GpuUniformBuffer<T>) -> Self
+    pub fn add_uniform_buffer<T>(mut self, buffer: &'res GpuUniformBuffer<T>) -> Self
     where
         T: bytemuck::Pod,
     {
         let bind = wgpu::BindGroupEntry {
-            binding: bind_id,
+            binding: self.bind_id,
             resource: buffer.as_binding_resource(),
         };
 
         self.bindings.push(bind);
         self.entry_type.push(EntryType::Uniform);
+        self.bind_id += 1;
 
         self
     }
@@ -85,14 +88,15 @@ impl<'res> SetBindings<'res> {
     ///
     /// SetBindings::default().add_image(0, &image);
     /// ```
-    pub fn add_image<P: PixelInfo>(mut self, bind_id: u32, img: &'res GpuImage<P>) -> Self {
+    pub fn add_image<P: PixelInfo>(mut self, img: &'res GpuImage<P>) -> Self {
         let bind = wgpu::BindGroupEntry {
-            binding: bind_id,
+            binding: self.bind_id,
             resource: img.as_binding_resource(),
         };
 
         self.bindings.push(bind);
         self.entry_type.push(EntryType::Image);
+        self.bind_id += 1;
 
         self
     }
@@ -106,18 +110,15 @@ impl<'res> SetBindings<'res> {
     ///
     /// SetBindings::default().add_const_image(0, &image);
     /// ```
-    pub fn add_const_image<P: PixelInfo>(
-        mut self,
-        bind_id: u32,
-        img: &'res GpuConstImage<P>,
-    ) -> Self {
+    pub fn add_const_image<P: PixelInfo>(mut self, img: &'res GpuConstImage<P>) -> Self {
         let bind = wgpu::BindGroupEntry {
-            binding: bind_id,
+            binding: self.bind_id,
             resource: img.as_binding_resource(),
         };
 
         self.bindings.push(bind);
         self.entry_type.push(EntryType::ConstImage);
+        self.bind_id += 1;
 
         self
     }
@@ -126,9 +127,8 @@ impl<'res> SetBindings<'res> {
         &self,
         fw: &Framework,
         layout: &wgpu::BindGroupLayout,
-        entry_types: &Vec<EntryType>,
+        entry_types: &[EntryType],
     ) -> wgpu::BindGroup {
-        // TODO: Make custom error struct/enum
         if self.entry_type.len() != entry_types.len() {
             panic!("SetBindings must have the same layout as SetLayout")
         }

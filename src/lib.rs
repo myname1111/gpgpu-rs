@@ -34,7 +34,7 @@ pub mod shader;
 
 mod entry_type;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum GpuBufferUsage {
     /// Read-only buffer.
     /// ### Example WGSL syntax:

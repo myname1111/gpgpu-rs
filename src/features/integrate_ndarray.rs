@@ -65,17 +65,17 @@ where
 }
 
 impl SetLayout {
-    pub fn add_array(&mut self, bind_id: u32, usage: GpuBufferUsage) {
-        self.add_buffer(bind_id, usage)
+    pub fn add_array(&mut self, usage: GpuBufferUsage) {
+        self.add_buffer(usage)
     }
 }
 
 impl<'res> SetBindings<'res> {
-    pub fn add_array<T, D>(self, bind_id: u32, arr: &'res GpuArray<T, D>) -> Self
+    pub fn add_array<T, D>(self, arr: &'res GpuArray<T, D>) -> Self
     where
         T: bytemuck::Pod,
         D: ndarray::Dimension,
     {
-        self.add_buffer(bind_id, &arr.0)
+        self.add_buffer(&arr.0)
     }
 }
