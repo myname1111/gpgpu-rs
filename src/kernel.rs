@@ -90,6 +90,8 @@ impl<'a> Kernel<'a> {
         {
             let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("Kernel::enqueue"),
+                timestamp_writes: None,
+                // Figure out what timestamp_writes means
             });
 
             cpass.set_pipeline(&self.pipeline);
