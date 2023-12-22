@@ -3,9 +3,9 @@ use std::marker::PhantomData;
 use thiserror::Error;
 use wgpu::{util::DeviceExt, MapMode};
 
-use crate::{primitives::buffers, GpuConstImage, GpuImage};
+use crate::{entry_type::EntryType, primitives::buffers, GpuConstImage, GpuImage};
 
-use super::{ImgOps, PixelInfo};
+use super::{AsBindingResource, BindGroupEntryType, ImgOps, PixelInfo};
 
 // TODO https://github.com/bitflags/bitflags/issues/180
 const GPU_IMAGE_USAGES: wgpu::TextureUsages = wgpu::TextureUsages::from_bits_truncate(
@@ -35,14 +35,28 @@ pub enum ImageInputError {
     NotIntegerRowNumber,
 }
 
-impl<'fw, P> ImgOps<'fw> for GpuImage<'fw, P>
+impl<'fw, P> AsBindingResource for GpuImage<'fw, P>
 where
     P: PixelInfo,
 {
     fn as_binding_resource(&self) -> wgpu::BindingResource {
         wgpu::BindingResource::TextureView(&self.full_view)
     }
+}
 
+impl<'fw, P> BindGroupEntryType for GpuImage<'fw, P>
+where
+    P: PixelInfo,
+{
+    fn entry_type(&self) -> EntryType {
+        EntryType::Image
+    }
+}
+
+impl<'fw, P> ImgOps<'fw> for GpuImage<'fw, P>
+where
+    P: PixelInfo,
+{
     fn as_gpu_texture(&self) -> &wgpu::Texture {
         &self.texture
     }
@@ -307,14 +321,28 @@ where
     }
 }
 
-impl<'fw, P> ImgOps<'fw> for GpuConstImage<'fw, P>
+impl<'fw, P> AsBindingResource for GpuConstImage<'fw, P>
 where
     P: PixelInfo,
 {
     fn as_binding_resource(&self) -> wgpu::BindingResource {
         wgpu::BindingResource::TextureView(&self.full_view)
     }
+}
 
+impl<'fw, P> BindGroupEntryType for GpuConstImage<'fw, P>
+where
+    P: PixelInfo,
+{
+    fn entry_type(&self) -> EntryType {
+        EntryType::ConstImage
+    }
+}
+
+impl<'fw, P> ImgOps<'fw> for GpuConstImage<'fw, P>
+where
+    P: PixelInfo,
+{
     fn as_gpu_texture(&self) -> &wgpu::Texture {
         &self.texture
     }
@@ -367,6 +395,7 @@ where
 
         let format = P::wgpu_format();
 
+        // Seems like the size is pre-multiplied with the format
         let texture = fw.device.create_texture_with_data(
             &fw.queue,
             &wgpu::TextureDescriptor {

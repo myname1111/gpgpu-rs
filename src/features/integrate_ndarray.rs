@@ -1,6 +1,10 @@
 use thiserror::Error;
 
-use crate::{primitives::buffers::BufferError, *};
+use crate::{
+    entry_type::EntryType,
+    primitives::{buffers::BufferError, AsBindingResource, BindGroupEntryType},
+    *,
+};
 
 #[derive(Error, Debug)]
 pub enum NdarrayError {
@@ -21,6 +25,26 @@ pub enum ArrayError {
 pub type ArrayResult<T> = Result<T, ArrayError>;
 
 pub struct GpuArray<'fw, T, D>(GpuBuffer<'fw, T>, D);
+
+impl<'fw, T, D> AsBindingResource for GpuArray<'fw, T, D>
+where
+    T: bytemuck::Pod,
+    D: ndarray::Dimension,
+{
+    fn as_binding_resource(&self) -> wgpu::BindingResource {
+        self.0.as_binding_resource()
+    }
+}
+
+impl<'fw, T, D> BindGroupEntryType for GpuArray<'fw, T, D>
+where
+    T: bytemuck::Pod,
+    D: ndarray::Dimension,
+{
+    fn entry_type(&self) -> EntryType {
+        EntryType::Buffer
+    }
+}
 
 impl<'fw, T, D> GpuArray<'fw, T, D>
 where
@@ -67,15 +91,5 @@ where
 impl SetLayout {
     pub fn add_array(&mut self, usage: GpuBufferUsage) {
         self.add_buffer(usage)
-    }
-}
-
-impl<'res> SetBindings<'res> {
-    pub fn add_array<T, D>(self, arr: &'res GpuArray<T, D>) -> Self
-    where
-        T: bytemuck::Pod,
-        D: ndarray::Dimension,
-    {
-        self.add_buffer(&arr.0)
     }
 }

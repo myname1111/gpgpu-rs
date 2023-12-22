@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use gpgpu::BufOps;
+use gpgpu::{layout, BufOps};
 
 // Framework is required to be static because of std::thread::spawn lifetime requirements.
 // By using crossbeam ScopedThreads this could be avoided.
@@ -17,7 +17,7 @@ fn main() {
         &FW,
         &shader,
         "main",
-        gpgpu::new_set_layout![
+        layout![
             Buffer(gpgpu::GpuBufferUsage::ReadOnly),
             Buffer(gpgpu::GpuBufferUsage::ReadOnly),
             Buffer(gpgpu::GpuBufferUsage::ReadWrite)
@@ -42,12 +42,17 @@ fn main() {
             let local_input_buffer = gpgpu::GpuBuffer::from_slice(&FW, &local_cpu_data);
             let local_output_buffer = gpgpu::GpuBuffer::<u32>::with_capacity(&FW, size as u64);
 
-            let binds = gpgpu::SetBindings::default()
-                .add_buffer(&local_shader_input_buffer)
-                .add_buffer(&local_input_buffer)
-                .add_buffer(&local_output_buffer);
-
-            kernel.run(&FW, binds, size / 32, 1, 1);
+            kernel.run(
+                &FW,
+                vec![
+                    local_shader_input_buffer.as_ref(),
+                    &local_input_buffer,
+                    &local_output_buffer,
+                ],
+                size / 32,
+                1,
+                1,
+            );
 
             local_output_buffer.read_vec_blocking().unwrap()
         });

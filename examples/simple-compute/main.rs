@@ -1,4 +1,4 @@
-use gpgpu::BufOps;
+use gpgpu::{layout, BufOps, GpuBufferUsage::*};
 
 // Simple compute example that multiplies 2 vectors A and B, storing the result in a vector C.
 fn main() {
@@ -13,11 +13,7 @@ fn main() {
         "main", // The kernel needs the name function to be executed
         // We have to tell the GPU how the layout of the data with SetLayout
         // We create SetLayout using the new_set_layout macro
-        gpgpu::new_set_layout![
-            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-            Buffer(gpgpu::GpuBufferUsage::ReadWrite)
-        ],
+        layout![Buffer(ReadOnly), Buffer(ReadOnly), Buffer(ReadWrite)],
     );
 
     let size = 10000; // Size of the vectors
@@ -30,14 +26,15 @@ fn main() {
     let gpu_vec_b = gpgpu::GpuBuffer::from_slice(&fw, &data_b); // Input vector B.
     let gpu_vec_c = gpgpu::GpuBuffer::with_capacity(&fw, size as u64); // Output vector C. Empty.
 
-    let bindings = gpgpu::SetBindings::default()
-        .add_buffer(&gpu_vec_a)
-        .add_buffer(&gpu_vec_b)
-        .add_buffer(&gpu_vec_c);
-
     // Execution of the kernel. It needs 3 dimmensions, x y and z.
     // Since we are using single-dim vectors, only x is required.
-    kernel.run(&fw, bindings, size as u32, 1, 1);
+    kernel.run(
+        &fw,
+        vec![&gpu_vec_a, &gpu_vec_b, &gpu_vec_c],
+        size as u32,
+        1,
+        1,
+    );
 
     // After the kernel execution, we can read the results from the GPU.
     let gpu_result = gpu_vec_c.read_vec_blocking().unwrap();

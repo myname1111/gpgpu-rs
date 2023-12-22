@@ -1,4 +1,4 @@
-use gpgpu::BufOps;
+use gpgpu::{layout, BufOps, GpuBufferUsage::*};
 
 // Simple compute example that multiplies 2 square arrays (matrixes)  A and B, storing the result in another array C using ndarray.
 fn main() {
@@ -9,11 +9,11 @@ fn main() {
         &fw,
         &shader,
         "main_fn_2",
-        gpgpu::new_set_layout!(
+        layout!(
             UniformBuffer,
-            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-            Buffer(gpgpu::GpuBufferUsage::ReadOnly),
-            Buffer(gpgpu::GpuBufferUsage::ReadWrite)
+            Buffer(ReadOnly),
+            Buffer(ReadOnly),
+            Buffer(ReadWrite)
         ),
     );
 
@@ -28,21 +28,13 @@ fn main() {
     let gpu_array_b = gpgpu::GpuArray::from_array(&fw, src_view).unwrap(); // Array B
     let gpu_array_c = gpgpu::GpuArray::from_array(&fw, ndarray::Array::zeros(dims).view()).unwrap(); // Array C: result storage
 
-    let binds = gpgpu::SetBindings::default()
-        .add_uniform_buffer(&gpu_arrays_len) // Bindings of arrays dimensions
-        .add_array(&gpu_array_a)
-        .add_array(&gpu_array_b)
-        .add_array(&gpu_array_c);
-
-    kernel
-        // .enqueue((dims.0 * dims.1) as u32, 1, 1); // Kernel main_fn 1. Enqueuing in a single dimension
-        .run(
-            &fw,
-            vec![binds_0, binds_1],
-            dims.0 as u32 / 32,
-            dims.1 as u32 / 32,
-            1,
-        ); // Kernel main_fn 2. Enqueuing in x and y dimensions (array dimensions are needed)
+    kernel.run(
+        &fw,
+        vec![&gpu_arrays_len, &gpu_array_a, &gpu_array_b, &gpu_array_c],
+        dims.0 as u32 / 32,
+        dims.1 as u32 / 32,
+        1,
+    ); // Kernel main_fn 2. Enqueuing in x and y dimensions (array dimensions are needed)
 
     let array_output = gpu_array_c.read_blocking().unwrap();
 

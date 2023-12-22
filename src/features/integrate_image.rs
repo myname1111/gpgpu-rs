@@ -70,12 +70,7 @@ where
         Container: std::ops::Deref<Target = [Pixel::Subpixel]>,
     {
         let (width, height) = img.dimensions();
-        GpuImage::from_bytes(
-            fw,
-            bytemuck::cast_slice(img),
-            width * Pixel::GpgpuPixel::byte_size() as u32,
-            height,
-        )
+        GpuImage::from_bytes(fw, bytemuck::cast_slice(img), width, height)
     }
 
     /// Constructs a new normalised [`GpuImage`] from a [`image::ImageBuffer`].
@@ -87,12 +82,7 @@ where
         Container: std::ops::Deref<Target = [Pixel::Subpixel]>,
     {
         let (width, height) = img.dimensions();
-        GpuImage::from_bytes(
-            fw,
-            bytemuck::cast_slice(img),
-            width * Pixel::GpgpuPixel::byte_size() as u32,
-            height,
-        )
+        GpuImage::from_bytes(fw, bytemuck::cast_slice(img), width, height)
     }
 }
 
@@ -110,12 +100,7 @@ where
         Container: std::ops::Deref<Target = [Pixel::Subpixel]>,
     {
         let (width, height) = img.dimensions();
-        GpuConstImage::from_bytes(
-            fw,
-            bytemuck::cast_slice(img),
-            width * Pixel::GpgpuPixel::byte_size() as u32,
-            height,
-        )
+        GpuConstImage::from_bytes(fw, bytemuck::cast_slice(img), width, height)
     }
 
     /// Constructs a new normalised [`GpuConstImage`] from a [`image::ImageBuffer`].
@@ -127,12 +112,7 @@ where
         Container: std::ops::Deref<Target = [Pixel::Subpixel]>,
     {
         let (width, height) = img.dimensions();
-        GpuConstImage::from_bytes(
-            fw,
-            bytemuck::cast_slice(img),
-            width * Pixel::GpgpuPixel::byte_size() as u32,
-            height,
-        )
+        GpuConstImage::from_bytes(fw, bytemuck::cast_slice(img), width, height)
     }
 }
 

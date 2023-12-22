@@ -1,5 +1,5 @@
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) enum EntryType {
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EntryType {
     Buffer,
     Uniform,
     ConstImage,

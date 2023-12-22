@@ -26,7 +26,7 @@ pub struct SetLayout {
 /// );
 /// ```
 #[macro_export]
-macro_rules! new_set_layout {
+macro_rules! layout {
     (@add_entry $usage:expr, $layout:expr, Buffer) => {
         $layout.add_buffer($usage);
     };
@@ -43,7 +43,7 @@ macro_rules! new_set_layout {
         let mut layout = $crate::layout::SetLayout::default();
 
         $(
-            $crate::new_set_layout!(@add_entry $($p, )? $($usage, )? layout, $ty);
+            $crate::layout!(@add_entry $($p, )? $($usage, )? layout, $ty);
         )+
 
         layout

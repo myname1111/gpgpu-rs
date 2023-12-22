@@ -29,98 +29,26 @@ pub struct SetBindings<'res> {
 }
 
 impl<'res> SetBindings<'res> {
-    /// Binds a new [`GpuBuffer`] with a bind id
-    /// # Example
-    /// ```
-    /// # let fw = Framework::default();
-    /// let data = (0..10000).into_iter().collect::<Vec<u32>>();
-    /// let buffer = GpuBuffer::from_slice(&fw, &data);
-    ///
-    /// SetBindings::default().add_buffer(0, &buffer);
-    /// ```
-    pub fn add_buffer<T>(mut self, buffer: &'res GpuBuffer<T>) -> Self
+    pub(crate) fn new(data: Vec<&'res dyn BindGroupEntryType>) -> Self {
+        let mut out = Self::default();
+        for data in data {
+            out.add_arg(data)
+        }
+        out
+    }
+
+    fn add_arg<T>(&mut self, data: &'res T)
     where
-        T: bytemuck::Pod,
+        T: BindGroupEntryType + ?Sized,
     {
         let bind = wgpu::BindGroupEntry {
             binding: self.bind_id,
-            resource: buffer.as_binding_resource(),
+            resource: data.as_binding_resource(),
         };
 
         self.bindings.push(bind);
-        self.entry_type.push(EntryType::Buffer);
+        self.entry_type.push(data.entry_type());
         self.bind_id += 1;
-
-        self
-    }
-
-    /// Binds a new [`GpuUniformBuffer`] with a bind id
-    /// # Example
-    /// ```
-    /// # let fw = Framework::default();
-    /// let scalar = 10u32;
-    /// let uniform = GpuUniformBuffer::from_slice(&fw, &[scalar]);
-    ///
-    /// SetBindings::default().add_uniform_buffer(0, &uniform);
-    /// ```
-    pub fn add_uniform_buffer<T>(mut self, buffer: &'res GpuUniformBuffer<T>) -> Self
-    where
-        T: bytemuck::Pod,
-    {
-        let bind = wgpu::BindGroupEntry {
-            binding: self.bind_id,
-            resource: buffer.as_binding_resource(),
-        };
-
-        self.bindings.push(bind);
-        self.entry_type.push(EntryType::Uniform);
-        self.bind_id += 1;
-
-        self
-    }
-
-    /// Binds a new [`GpuImage`] with a bind id
-    /// # Example
-    /// ```
-    /// # let fw = Framework::default();
-    /// let data = [0, 0, 0];
-    /// let image = GpuImage::from_bytes(&fw, &data, 1, 1);
-    ///
-    /// SetBindings::default().add_image(0, &image);
-    /// ```
-    pub fn add_image<P: PixelInfo>(mut self, img: &'res GpuImage<P>) -> Self {
-        let bind = wgpu::BindGroupEntry {
-            binding: self.bind_id,
-            resource: img.as_binding_resource(),
-        };
-
-        self.bindings.push(bind);
-        self.entry_type.push(EntryType::Image);
-        self.bind_id += 1;
-
-        self
-    }
-
-    /// Binds a new [`GpuConstImage`] with a bind id
-    /// # Example
-    /// ```
-    /// # let fw = Framework::default();
-    /// let data = [0, 0, 0];
-    /// let image = GpuConstImage::from_bytes(&fw, &data, 1, 1);
-    ///
-    /// SetBindings::default().add_const_image(0, &image);
-    /// ```
-    pub fn add_const_image<P: PixelInfo>(mut self, img: &'res GpuConstImage<P>) -> Self {
-        let bind = wgpu::BindGroupEntry {
-            binding: self.bind_id,
-            resource: img.as_binding_resource(),
-        };
-
-        self.bindings.push(bind);
-        self.entry_type.push(EntryType::ConstImage);
-        self.bind_id += 1;
-
-        self
     }
 
     pub(crate) fn to_bind_group(
@@ -130,12 +58,15 @@ impl<'res> SetBindings<'res> {
         entry_types: &[EntryType],
     ) -> wgpu::BindGroup {
         if self.entry_type.len() != entry_types.len() {
-            panic!("SetBindings must have the same layout as SetLayout")
+            panic!("Bindings must have the same layout as Layout")
         }
 
         for entry_type in self.entry_type.iter().zip(entry_types.iter()) {
             if entry_type.0 != entry_type.1 {
-                panic!("SetBindings do not have the same entry type as SetLayout")
+                panic!(
+                    "A binding of type {:?} is different from {:?} which was previouly defined in the layout",
+                    entry_type.0, entry_type.1
+                )
             }
         }
 

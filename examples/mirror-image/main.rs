@@ -9,7 +9,7 @@ fn main() {
         &fw,
         &shader,
         "main",
-        gpgpu::new_set_layout![ConstImage<Rgba8Uint>, Image<Rgba8Uint>],
+        gpgpu::layout![ConstImage<Rgba8Uint>, Image<Rgba8Uint>],
     );
 
     let dynamic_img = image::open("examples/mirror-image/monke.jpg").unwrap(); // RGB8 image ...
@@ -24,11 +24,13 @@ fn main() {
     // Write input image into the GPU
     input_img.write(&rgba).unwrap();
 
-    let binds = gpgpu::SetBindings::default()
-        .add_const_image(&input_img)
-        .add_image(&output_img);
-
-    kernel.run(&fw, binds, width / 32, height / 32, 1); // Since the kernel workgroup size is (32, 32, 1) dims are divided
+    kernel.run(
+        &fw,
+        vec![&input_img, &output_img],
+        width / 32,
+        height / 32,
+        1,
+    ); // Since the kernel workgroup size is (32, 32, 1) dims are divided
 
     let output_bytes = output_img.read_vec_blocking().unwrap();
     image::save_buffer(

@@ -3,9 +3,9 @@ use std::marker::PhantomData;
 use thiserror::Error;
 use wgpu::{util::DeviceExt, MapMode};
 
-use crate::{GpuBuffer, GpuUniformBuffer};
+use crate::{entry_type::EntryType, GpuBuffer, GpuUniformBuffer};
 
-use super::BufOps;
+use super::{BindGroupEntryType, BufOps};
 
 // TODO https://github.com/bitflags/bitflags/issues/180
 // TODO Unsure wether MAP_READ and MAP_WRITE should only be present on certain buffers
@@ -28,10 +28,12 @@ pub enum BufferError {
     AsyncMapError(#[from] wgpu::BufferAsyncError),
 }
 
-impl<'fw, T> BufOps<'fw, T> for GpuBuffer<'fw, T>
+impl<'fw, T> BufOps<'fw> for GpuBuffer<'fw, T>
 where
     T: bytemuck::Pod,
 {
+    type T = T;
+
     fn size(&self) -> u64 {
         self.size
     }
@@ -163,10 +165,21 @@ where
     }
 }
 
-impl<'fw, T> BufOps<'fw, T> for GpuUniformBuffer<'fw, T>
+impl<'fw, T> BindGroupEntryType for GpuBuffer<'fw, T>
 where
     T: bytemuck::Pod,
 {
+    fn entry_type(&self) -> EntryType {
+        EntryType::Buffer
+    }
+}
+
+impl<'fw, T> BufOps<'fw> for GpuUniformBuffer<'fw, T>
+where
+    T: bytemuck::Pod,
+{
+    type T = T;
+
     fn size(&self) -> u64 {
         self.size
     }
@@ -254,5 +267,14 @@ where
         self.fw.queue.submit(Some(encoder.finish()));
 
         Ok(upload_size)
+    }
+}
+
+impl<'fw, T> BindGroupEntryType for GpuUniformBuffer<'fw, T>
+where
+    T: bytemuck::Pod,
+{
+    fn entry_type(&self) -> EntryType {
+        EntryType::Uniform
     }
 }

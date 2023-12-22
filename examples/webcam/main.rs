@@ -1,8 +1,9 @@
 use std::io::Write;
 
 use gpgpu::{
-    new_set_layout, primitives::pixels::Rgba8UintNorm, BufOps, Framework, GpuConstImage, GpuImage,
-    GpuUniformBuffer, ImgOps,
+    layout,
+    primitives::{pixels::Rgba8UintNorm, BindGroupEntryType},
+    BufOps, Framework, GpuConstImage, GpuImage, GpuUniformBuffer, ImgOps,
 };
 
 use minifb::{Key, Window, WindowOptions};
@@ -19,7 +20,7 @@ fn main() {
         &fw,
         &shader,
         "main",
-        new_set_layout![
+        layout![
             ConstImage<Rgba8UintNorm>,
             Image<Rgba8UintNorm>,
             UniformBuffer
@@ -60,10 +61,7 @@ fn main() {
 
     let gpu_output = GpuImage::<Rgba8UintNorm>::new(&fw, WIDTH as u32, HEIGHT as u32); // Shader output
 
-    let binds = gpgpu::SetBindings::default()
-        .add_const_image(&gpu_input)
-        .add_image(&gpu_output)
-        .add_uniform_buffer(&buf_time);
+    let binds: Vec<&dyn BindGroupEntryType> = vec![&gpu_input, &gpu_output, &buf_time];
 
     let time = std::time::Instant::now();
 

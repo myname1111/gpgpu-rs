@@ -1,4 +1,4 @@
-use crate::{bindings::SetBindings, entry_type::EntryType, *};
+use crate::{bindings::SetBindings, entry_type::EntryType, primitives::BindGroupEntryType, *};
 
 /// Used to enqueue the execution of a shader with the bidings provided.
 ///
@@ -56,7 +56,16 @@ impl<'a> Kernel<'a> {
     /// executes this [`Kernel`] with the give bindings.
     ///
     /// [`Kernel`] will dispatch `x`, `y` and `z` workgroups per dimension.
-    pub fn run(&self, fw: &Framework, binding: SetBindings, x: u32, y: u32, z: u32) {
+    pub fn run(
+        &self,
+        fw: &Framework,
+        arguments: Vec<&'a dyn BindGroupEntryType>,
+        x: u32,
+        y: u32,
+        z: u32,
+    ) {
+        let binding = SetBindings::new(arguments);
+
         let mut encoder = fw
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
